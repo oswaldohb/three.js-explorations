@@ -12,11 +12,15 @@
   "license": "ISC",
   "dependencies": {
     "camera-controls": "^1.36.1",
+    "gsap": "^3.11.0",
+    "stats.js": "^0.17.0",
     "three": "^0.143.0",
     "uninstall": "^0.0.0"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^13.3.0",
+    "@types/stats.js": "^0.17.0",
+    "@types/three": "^0.143.1",
     "rollup": "^2.78.0"
   }
 }
