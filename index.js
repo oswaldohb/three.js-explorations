@@ -37,10 +37,11 @@ import gsap from 'gsap';
 
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-import Stats from 'stats.js/src/Stats';
+import {CSS2DRenderer, CSS2DObject} from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+
+// import Stats from 'stats.js/src/Stats';
 
 const canvas = document.getElementById('three-canvas');
-
 
 
 // 1 the Scene
@@ -57,33 +58,41 @@ scene.add(grid);
 
 // 2 the object
 
-const material = new MeshLambertMaterial({color: 'orange'});
-const geometry = new BoxGeometry();
-const cubeMesh = new Mesh(geometry, material)
-scene.add(cubeMesh);
+// const label = document.createElement('h1');
+// label.textContent = "Hello world";
+// label.classList.add('red');
+// const labelObject = new CSS2DObject(label);
+// scene.add(labelObject);
 
-// const loader = new GLTFLoader();
 
-// const LoadingScreen = document.getElementById('loader-container');
-// const progressText = document.getElementById('progress-text');
+// const material = new MeshLambertMaterial({color: 'orange'});
+// const geometry = new BoxGeometry();
+// const cubeMesh = new Mesh(geometry, material)
+// scene.add(cubeMesh);
 
-// loader.load('./police_station.glb',
+const loader = new GLTFLoader();
 
-// (gltf) => {
-//     scene.add(gltf.scene);
-//     LoadingScreen.classList.add('hidden');
-// },
+const LoadingScreen = document.getElementById('loader-container');
+const progressText = document.getElementById('progress-text');
+let policeStation;
 
-// (progress) => {
-//     console.log(progress);
-//     const progressPercent = progress.loaded / progress.total *100;
-//     const formated = Math.trunc(progressPercent);
-//     progressText.textContent = `Loading: ${formated}%`;
-// },
+loader.load('./police_station.glb',
 
-// (error) => {
-//     console.log(error);
-// });
+(gltf) => {
+    policeStation = gltf.scene;
+    scene.add(policeStation);
+    LoadingScreen.classList.add('hidden');
+},
+
+(progress) => {
+    const progressPercent = progress.loaded / progress.total *100;
+    const formated = Math.trunc(progressPercent);
+    progressText.textContent = `Loading: ${formated}%`;
+},
+
+(error) => {
+    console.log(error);
+});
 
 // 3 The camera
 
@@ -102,6 +111,13 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
 renderer.setClearColor('gray', 1);
 
+const LabelRenderer = new CSS2DRenderer();
+LabelRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
+LabelRenderer.domElement.style.position = 'absolute';
+LabelRenderer.domElement.style.pointerEvents = 'none';
+LabelRenderer.domElement.style.top = '0';
+document.body.appendChild(LabelRenderer.domElement);
+
 // 5 lights
 
 const light1 = new DirectionalLight();
@@ -117,6 +133,7 @@ window.addEventListener('resize', () => {
     camera.aspect = canvas.clientWidth / canvas.clientHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+    LabelRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
 });
 
 // 7 Controls
@@ -143,9 +160,53 @@ const clock = new Clock();
 const cameraControls = new CameraControls(camera, canvas);
 cameraControls.dollyToCursor = true;
 
-cameraControls.setLookAt(3, 4, 2, 0, 0, 0)
+cameraControls.setLookAt(18, 20, 18, 0, 10, 0);
 
 // 8 picking
+
+const raycaster = new Raycaster();
+const mouse = new Vector2();
+
+window.addEventListener('dblclick', (event) => {
+ mouse.x = event.clientX / canvas.clientWidth * 2 - 1;
+ mouse.y = - (event.clientY / canvas.clientHeight) * 2 + 1;
+
+ raycaster.setFromCamera(mouse, camera);
+ const intersects = raycaster.intersectObject(policeStation);
+
+ if(!intersects.length) return;
+
+ const collisionLocation = intersects[0].point;
+
+ const message = window.prompt('Descrite the issue:');
+
+ const container = document.createElement('div');
+ container.className = 'label-container';
+
+ const deleteButton = document.createElement('button');
+ deleteButton.textContent = 'X';
+ deleteButton.className = 'delete-button hidden';
+ container.appendChild(deleteButton);
+
+ const label = document.createElement('p');
+ label.textContent = message;
+ label.classList.add('label');
+ container.appendChild(label);
+
+ const labelObject = new CSS2DObject(container);
+ labelObject.position.copy(collisionLocation);
+ scene.add(labelObject);
+
+ deleteButton.onclick = () => {
+    labelObject.removeFromParent();
+    labelObject.element = null
+    container.remove();
+ }
+
+ container.onmouseenter = () => deleteButton.classList.remove('hidden');
+ container.onmouseleave = () => deleteButton.classList.add('hidden');
+
+} )
 
 // const raycaster = new Raycaster();
 // const mouse = new Vector2();
@@ -193,20 +254,21 @@ cameraControls.setLookAt(3, 4, 2, 0, 0, 0)
 //     })
 
 // 9 animation
-const stats = new Stats();
-stats.showPanel(1);
-document.body.appendChild(stats.dom);
+// const stats = new Stats();
+// stats.showPanel(1);
+// document.body.appendChild(stats.dom);
 
 function animate() {
 
-    stats.begin();
+    // stats.begin();
 
     const delta = clock.getDelta();
     cameraControls.update(delta);
 
-    renderer.render(scene, camera)
+    renderer.render(scene, camera);
+    LabelRenderer.render(scene, camera);
 
-    stats.end();
+    // stats.end();
 
     requestAnimationFrame(animate);
 }
